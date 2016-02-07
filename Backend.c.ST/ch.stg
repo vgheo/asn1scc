@@ -79,6 +79,11 @@ PrintPrototypes(arrsEncPrototypes) ::= <<
 <arrsEncPrototypes: {pr|<pr>}; separator="\n">
 >>
 
+PrintPrototypes_global(arrsEncPrototypes) ::= <<
+typedef struct Encoder_Functions_t {
+    <arrsEncPrototypes: {pr|<pr>}; separator="\n">
+} Encoder_Functions;
+>>
 
 PrintErrorCode(sErrorName, nErrCode, sComment) ::= <<
 #ifndef <sErrorName> 
@@ -92,9 +97,20 @@ flag <sName>_Encode(const <sName><sStar> val, BitStream* pBitStrm, int* pErrCode
 flag <sName>_Decode(<sName><sStar> pVal, BitStream* pBitStrm, int* pErrCode);
 >>
 
+UPER_encPrototypes_global(sName, sStar) ::= <<
+flag (*<sName>_Encode)(const <sName><sStar> val, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag (*<sName>_Decode)(<sName><sStar> pVal, BitStream* pBitStrm, int* pErrCode);
+>>
+
+
 XER_encPrototypes(sName, sStar) ::= <<
 flag <sName>_XER_Encode(const <sName><sStar> val, ByteStream* pByteStrm, int* pErrCode, flag bCheckConstraints);
 flag <sName>_XER_Decode(<sName><sStar> pVal, ByteStream* pByteStrm, int* pErrCode);
+>>
+
+XER_encPrototypes_global(sName, sStar) ::= <<
+flag (*<sName>_XER_Encode)(const <sName><sStar> val, ByteStream* pByteStrm, int* pErrCode, flag bCheckConstraints);
+flag (*<sName>_XER_Decode)(<sName><sStar> pVal, ByteStream* pByteStrm, int* pErrCode);
 >>
 
 BER_encPrototypes(sName, sStar) ::= <<
@@ -102,6 +118,10 @@ flag <sName>_BER_Encode(const <sName><sStar> val, ByteStream* pByteStrm, int* pE
 flag <sName>_BER_Decode(<sName><sStar> pVal, ByteStream* pByteStrm, int* pErrCode);
 >>
 
+BER_encPrototypes_global(sName, sStar) ::= <<
+flag (*<sName>_BER_Encode)(const <sName><sStar> val, ByteStream* pByteStrm, int* pErrCode, flag bCheckConstraints);
+flag (*<sName>_BER_Decode)(<sName><sStar> pVal, ByteStream* pByteStrm, int* pErrCode);
+>>
 
 PrintAcnParameter(sTypeDecl, bEncOut, sName) ::= "<sTypeDecl><if(bEncOut)>*<endif> <sName>"
 
@@ -112,6 +132,10 @@ flag <sName>_ACN_Encode(const <sName><sStar> val, BitStream* pBitStrm, int* pErr
 flag <sName>_ACN_Decode(<sName><sStar> pVal, BitStream* pBitStrm, int* pErrCode<if(arrsDecodingParams)>, <arrsDecodingParams:{param|<param>}; separator=", "><endif>);
 >>
 
+ACN_encPrototypes_global(sName, sStar, arrsEncodingParams, arrsDecodingParams) ::= <<
+flag (*<sName>_ACN_Encode)(const <sName><sStar> val, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints<if(arrsEncodingParams)>, <arrsEncodingParams:{param|<param>}; separator=", "><endif>);
+flag (*<sName>_ACN_Decode)(<sName><sStar> pVal, BitStream* pBitStrm, int* pErrCode<if(arrsDecodingParams)>, <arrsDecodingParams:{param|<param>}; separator=", "><endif>);
+>>
 
 
 Declare_Integer() ::="asn1SccSint"

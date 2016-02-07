@@ -210,6 +210,53 @@ let SortTypeAssigments (f:Asn1File) (r:AstRoot) (acn:AcnTypes.AcnAstResolved) =
 
     } |> Seq.toList
 
+let SortTypeAssigmentsGlobal (r:AstRoot) (acn:AcnTypes.AcnAstResolved) =
+    let GetTypeDependencies (tas:TypeAssignment)  = 
+        seq {
+            for ch in (GetMySelfAndChildren tas.Type) do
+                match ch.Kind with
+                | ReferenceType(_, tasName, _)   -> yield tasName.Value; 
+                | _                                 ->      ()
+        } |> Seq.distinct |> Seq.toList
+
+    let allNodes0 = 
+        seq {
+            for f in r.Files do
+                for m in f.Modules do
+                    for tas in m.TypeAssignments do
+                        yield (m, tas)
+        } |> Seq.toList
+    let tasMap = allNodes0 |> List.map(fun (m,tas) -> tas.Name.Value, (m,tas)) |> Map.ofList
+    let allNodes = allNodes0  |> List.map( fun (_,tas) -> (tas.Name.Value, GetTypeDependencies tas))
+
+    let independentNodes = allNodes |> List.filter(fun (_,list) -> List.isEmpty list) |> List.map(fun (n,l) -> n)
+    let dependentNodes = allNodes |> List.filter(fun (_,list) -> not (List.isEmpty list) )
+    let sortedTypeAss = 
+        DoTopologicalSort (independentNodes) dependentNodes 
+            (fun c -> 
+            SemanticError
+                (emptyLocation, 
+                 sprintf 
+                     "Recursive types are not compatible with embedded systems.\nASN.1 grammar has cyclic dependencies: %A" 
+                     c))
+    sortedTypeAss |> List.map(fun s -> tasMap.[s])
+
+let PrintAcnProtosGlobal (t:TypeAssignment) (m:Asn1Module) (r:AstRoot) (acn:AcnTypes.AcnAstResolved) = 
+    let sName = t.GetCName r.TypePrefix
+    let sStar = (TypeStar t.Type r)
+    let print_encoding_protory (enc:Asn1Encoding) =
+        match enc with
+        | BER   -> ch.BER_encPrototypes_global sName sStar
+        | XER   -> ch.XER_encPrototypes_global sName sStar        
+        | UPER  -> ch.UPER_encPrototypes_global sName sStar
+        | ACN   -> 
+            let path = [m.Name.Value; t.Name.Value]
+            let myParams = acn.Parameters |> List.filter(fun p -> p.TasName=t.Name.Value && p.ModName=m.Name.Value)
+            let EncPrms = myParams |> Seq.choose(fun p -> PrintExtracAcnParams p m r Encode)
+            let DecPrms = myParams |> Seq.choose(fun p -> PrintExtracAcnParams p m r Decode)
+            ch.ACN_encPrototypes_global sName sStar EncPrms DecPrms
+    (r.Encodings |> Seq.map print_encoding_protory ) |> Seq.toList
+    
 
 
 let PrintFile (f:Asn1File) outDir newFileExt (r:AstRoot) (acn:AcnTypes.AcnAstResolved)  =
@@ -259,7 +306,18 @@ let PrintFile (f:Asn1File) outDir newFileExt (r:AstRoot) (acn:AcnTypes.AcnAstRes
     let fileName = Path.Combine(outDir, (f.FileNameWithoutExtension+newFileExt))
     File.WriteAllText(fileName, content.Replace("\r",""))
 
+
+let createClasses (r:AstRoot) (acn:AcnTypes.AcnAstResolved) outDir newFileExt =
+    let sortedTas = SortTypeAssigmentsGlobal r acn
+    let protos  = sortedTas |> List.map(fun (m,tas) -> PrintAcnProtosGlobal tas m r acn ) |> List.collect id
+    
+    let content = ch.PrintPrototypes_global protos
+    let fileName = Path.Combine(outDir, "DefaultEncoders.h")
+    File.WriteAllText(fileName, content.Replace("\r",""))
+
+
 let DoWork (r:AstRoot) (acn:AcnTypes.AcnAstResolved) outDir newFileExt =
     r.Files |> Seq.iter(fun f -> PrintFile f outDir newFileExt r acn )  
+    createClasses r acn outDir newFileExt
 
 
