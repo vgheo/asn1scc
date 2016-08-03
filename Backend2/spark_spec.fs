@@ -62,56 +62,64 @@ let PrintTasDeclaration (t:TypeAssignment) (m:Asn1Module) (r:AstRoot) (state:Sta
             |Concrete(min, max)        -> min,max
             |_                         -> raise(BugErrorException "SEQUENCE OF or OCTET STRING etc has no constraints")
     let sName = t.GetCName r.TypePrefix
-    match t.Type.Kind with
-    | Integer | Real  | Boolean | NullType |ReferenceType(_)             -> 
-        let sTypeDecl, s1 = PrintType t.Type [m.Name.Value; t.Name.Value] None (TypeAssignment t,m,r) state
-        ss.PRIMITIVE_tas_decl sName sTypeDecl, s1
-    |Sequence(children)   ->
-        let optionalChildren = children |> Seq.filter(fun c -> c.Optionality.IsSome) |> Seq.map(fun c -> ss.SEQUENCE_tas_decl_child_bit (c.CName ProgrammingLanguage.Spark))
-        let printChild (s:State) (c:ChildInfo) =
-            let typeDecl,s1 = PrintType c.Type [m.Name.Value; t.Name.Value; c.Name.Value] (Some t.Type) (TypeAssignment t,m,r) s
-            ss.SEQUENCE_tas_decl_child (c.CName ProgrammingLanguage.Spark) typeDecl, s1 
-        let arrChildren, newState =   children |> List.filter(fun c -> not c.AcnInsertedField) |> foldMap printChild state
-        ss.SEQUENCE_tas_decl sName arrChildren optionalChildren,  newState
-    |Choice(children)  -> 
-        let printChild (s:State) (c:ChildInfo) =
-            let typeDecl,s1 = PrintType c.Type [m.Name.Value; t.Name.Value; c.Name.Value] (Some t.Type) (TypeAssignment t,m,r) s
-            ss.CHOICE_tas_decl_child sName (c.CName ProgrammingLanguage.Spark) typeDecl (c.CName_Present Spark), s1 
-        let arrChildren, newState =   children |> foldMap printChild state
-        let arrChPresent = children |> List.map(fun c -> (c.CName_Present  Spark))
-        let nIndexMax = BigInteger ((Seq.length children)-1)
-        ss.CHOICE_tas_decl sName arrChildren arrChPresent nIndexMax, state
-    |Enumerated(items)  ->
-        let orderedItems =
-            match items |> Seq.exists(fun itm -> itm._value.IsNone) with
-            | true  ->  items 
-            | false ->  items |> Seq.sortBy(fun x -> Ast.GetValueAsInt x._value.Value r ) |> Seq.toList
+    match t.baseType with
+    | Some (modName,tasName) ->
+        let sTypeDecl =
+            match modName = m.Name with
+            |true  -> ss.Declare_Reference1 (GetTasCName tasName.Value r.TypePrefix)
+            |false  -> ss.Declare_Reference2 (ToC modName.Value) (GetTasCName tasName.Value r.TypePrefix)
+        ss.PRIMITIVE_tas_decl sName sTypeDecl, state
+    | None  ->
+        match t.Type.Kind with
+        | Integer | Real  | Boolean | NullType |ReferenceType(_)             -> 
+            let sTypeDecl, s1 = PrintType t.Type [m.Name.Value; t.Name.Value] None (TypeAssignment t,m,r) state
+            ss.PRIMITIVE_tas_decl sName sTypeDecl, s1
+        |Sequence(children)   ->
+            let optionalChildren = children |> Seq.filter(fun c -> c.Optionality.IsSome) |> Seq.map(fun c -> ss.SEQUENCE_tas_decl_child_bit (c.CName ProgrammingLanguage.Spark))
+            let printChild (s:State) (c:ChildInfo) =
+                let typeDecl,s1 = PrintType c.Type [m.Name.Value; t.Name.Value; c.Name.Value] (Some t.Type) (TypeAssignment t,m,r) s
+                ss.SEQUENCE_tas_decl_child (c.CName ProgrammingLanguage.Spark) typeDecl, s1 
+            let arrChildren, newState =   children |> List.filter(fun c -> not c.AcnInsertedField) |> foldMap printChild state
+            ss.SEQUENCE_tas_decl sName arrChildren optionalChildren,  newState
+        |Choice(children)  -> 
+            let printChild (s:State) (c:ChildInfo) =
+                let typeDecl,s1 = PrintType c.Type [m.Name.Value; t.Name.Value; c.Name.Value] (Some t.Type) (TypeAssignment t,m,r) s
+                ss.CHOICE_tas_decl_child sName (c.CName ProgrammingLanguage.Spark) typeDecl (c.CName_Present Spark), s1 
+            let arrChildren, newState =   children |> foldMap printChild state
+            let arrChPresent = children |> List.map(fun c -> (c.CName_Present  Spark))
+            let nIndexMax = BigInteger ((Seq.length children)-1)
+            ss.CHOICE_tas_decl sName arrChildren arrChPresent nIndexMax, state
+        |Enumerated(items)  ->
+            let orderedItems =
+                match items |> Seq.exists(fun itm -> itm._value.IsNone) with
+                | true  ->  items 
+                | false ->  items |> Seq.sortBy(fun x -> Ast.GetValueAsInt x._value.Value r ) |> Seq.toList
 
-        let arrsEnumNames = 
-            orderedItems |> Seq.map(fun it -> (it.CEnumName r Spark))
+            let arrsEnumNames = 
+                orderedItems |> Seq.map(fun it -> (it.CEnumName r Spark))
 
-        let printNamedItem (idx:int) (itm:NamedItem) =
-            match itm._value with
-            | Some(vl)  -> ss.ENUMERATED_tas_decl_item (itm.CEnumName r Spark) (Ast.GetValueAsInt vl r) 
-            | None      -> ss.ENUMERATED_tas_decl_item (itm.CEnumName r Spark) (BigInteger idx)
-        let arrsEnumNamesAndValues =
-            orderedItems |> Seq.mapi printNamedItem
-        let nIndexMax = BigInteger ((Seq.length items)-1)
-        ss.ENUMERATED_tas_decl sName arrsEnumNames arrsEnumNamesAndValues nIndexMax, state
-    |SequenceOf(c)  ->
-        let nMin, nMax = SizeableTypeUperRange()
-        let typeDecl,s1 =  PrintType c [m.Name.Value; t.Name.Value; "#"] (Some t.Type) (TypeAssignment t,m,r) state
-        ss.SEQUENCE_OF_tas_decl sName nMin nMax (nMin=nMax) typeDecl,s1
-    |IA5String |NumericString  ->
-        let nMin, nMax = SizeableTypeUperRange()
-        let alphaSet = GetTypeUperRangeFrom (t.Type.Kind, t.Type.Constraints, r) |> Array.map(fun x -> BigInteger(System.Convert.ToInt32 x))
-        ss.IA5STRING_OF_tas_decl sName nMin nMax (nMax + 1I) alphaSet, state        
-    |BitString  ->
-        let nMin, nMax = SizeableTypeUperRange()
-        ss.BIT_STRING_tas_decl sName nMin nMax (nMin=nMax), state        
-    |OctetString                   -> 
-        let nMin, nMax = SizeableTypeUperRange()
-        ss.OCTET_STRING_tas_decl sName nMin nMax (nMin=nMax), state        
+            let printNamedItem (idx:int) (itm:NamedItem) =
+                match itm._value with
+                | Some(vl)  -> ss.ENUMERATED_tas_decl_item (itm.CEnumName r Spark) (Ast.GetValueAsInt vl r) 
+                | None      -> ss.ENUMERATED_tas_decl_item (itm.CEnumName r Spark) (BigInteger idx)
+            let arrsEnumNamesAndValues =
+                orderedItems |> Seq.mapi printNamedItem
+            let nIndexMax = BigInteger ((Seq.length items)-1)
+            ss.ENUMERATED_tas_decl sName arrsEnumNames arrsEnumNamesAndValues nIndexMax, state
+        |SequenceOf(c)  ->
+            let nMin, nMax = SizeableTypeUperRange()
+            let typeDecl,s1 =  PrintType c [m.Name.Value; t.Name.Value; "#"] (Some t.Type) (TypeAssignment t,m,r) state
+            ss.SEQUENCE_OF_tas_decl sName nMin nMax (nMin=nMax) typeDecl,s1
+        |IA5String |NumericString  ->
+            let nMin, nMax = SizeableTypeUperRange()
+            let alphaSet = GetTypeUperRangeFrom (t.Type.Kind, t.Type.Constraints, r) |> Array.map(fun x -> BigInteger(System.Convert.ToInt32 x))
+            ss.IA5STRING_OF_tas_decl sName nMin nMax (nMax + 1I) alphaSet, state        
+        |BitString  ->
+            let nMin, nMax = SizeableTypeUperRange()
+            ss.BIT_STRING_tas_decl sName nMin nMax (nMin=nMax), state        
+        |OctetString                   -> 
+            let nMin, nMax = SizeableTypeUperRange()
+            ss.OCTET_STRING_tas_decl sName nMin nMax (nMin=nMax), state        
 
 
 //vistor function

@@ -136,7 +136,11 @@ let PrintTypeAss (t:TypeAssignment) (m:Asn1Module) (f:Asn1File) (r:AstRoot) (acn
 
     let errorCodes, newErrCode = GetErrorCodes curErrCode
     
-    let sTypeDecl = PrintTypeDeclaration t.Type [m.Name.Value; t.Name.Value] r
+    let sTypeDecl = 
+        match t.baseType with
+        | None  -> PrintTypeDeclaration t.Type [m.Name.Value; t.Name.Value] r
+        | Some (md, tasName) -> (GetTasCName tasName.Value r.TypePrefix)
+
     let sarrPostfix = TypeArrayPostfix t.Type r
     let sName = t.GetCName r.TypePrefix
     let nMaxBitsInPER = uperGetMaxSizeInBitsAsInt t.Type.Kind t.Type.Constraints t.Type.Location r

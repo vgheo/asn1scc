@@ -229,6 +229,7 @@ let MapTypeAssignment (r:ParameterizedAsn1Ast.AstRoot) (tas:ParameterizedAsn1Ast
         c_name = ToC2 tas.Name.Value
         ada_name = ToC2 tas.Name.Value
         Comments = tas.Comments
+        baseType = None
     }
 
 let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (vas:ParameterizedAsn1Ast.ValueAssignment) :Ast.ValueAssignment =

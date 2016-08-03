@@ -12,6 +12,7 @@ type NewTas = {
     TasName:string
     Type:Asn1Type
     originalTypePath:AbsPath
+    baseType : StringLoc*StringLoc
 }
 
 type State = {
@@ -45,13 +46,14 @@ let DoWork ast acn =
         |ReferenceType(mn,nm, bTab)   when not(Seq.isEmpty old.Constraints)  || not(Seq.isEmpty acnProps) || not(Seq.isEmpty moveLongRefs)  -> 
             let mdName, newRefTypeName = 
                 match key with
-                | modName::restKey -> modName, (restKey@[state.Count.ToString()]).StrJoin("-")
+                | modName::restKey::[] -> modName, restKey  // in this case the new TAS will replace the old one
+                | modName::restKey     -> modName, (restKey@[state.Count.ToString()]).StrJoin("-")
                 | []               -> raise(BugErrorException("Invalid type key"))
             let baseType = GetBaseType old ast
             let typeToReturn = {old with Kind = ReferenceType(m.Name,newRefTypeName.AsLoc, bTab); Constraints=[]; AcnProperties=[]}
             let newType = {baseType with Constraints=(baseType.Constraints @ old.Constraints); AcnProperties=old.AcnProperties}
 
-            let newTas = {NewTas.ModName = m.Name.Value; TasName=newRefTypeName;Type=newType; originalTypePath=key}
+            let newTas = {NewTas.ModName = m.Name.Value; TasName=newRefTypeName;Type=newType; originalTypePath=key; baseType = (mn,nm)}
 
             let newState = {state with State.newTases = newTas::state.newTases; Count = state.Count+1; }
             typeToReturn, newState
@@ -106,9 +108,11 @@ let DoWork ast acn =
     let CloneModule (oldAsn1:AstRoot) (old:Asn1Module) (cons:Constructors<State>) (state:State)  = 
         let thisModuleTases = state.newTases |>List.filter(fun newTas ->  newTas.ModName = old.Name.Value) 
         let restState = {state with newTases = state.newTases |>List.filter(fun newTas -> newTas.ModName <> old.Name.Value) }
-        let newTasses = thisModuleTases |> List.map (fun newTas -> {TypeAssignment.Name = newTas.TasName.AsLoc; c_name = ToC2 newTas.TasName; ada_name = ToC2 newTas.TasName; Type = newTas.Type;  Comments = [||]} )
+        let newTasses = thisModuleTases |> List.map (fun newTas -> {TypeAssignment.Name = newTas.TasName.AsLoc; c_name = ToC2 newTas.TasName; ada_name = ToC2 newTas.TasName; Type = newTas.Type;  Comments = [||]; baseType = Some newTas.baseType} )
         let newAcn = thisModuleTases |> Seq.fold(fun curAcn tas -> AcnHouseKeeping oldAsn1 curAcn tas) restState.acn
-        defaultConstructors.createModule oldAsn1 {old with TypeAssignments = old.TypeAssignments @ newTasses} cons {restState with acn=newAcn  }
+        let newModuleTasses = 
+            (old.TypeAssignments |> List.filter(fun ts -> not (newTasses |> Seq.exists (fun y -> y.Name.Value = ts.Name.Value)))) @ newTasses
+        defaultConstructors.createModule oldAsn1 {old with TypeAssignments = newModuleTasses} cons {restState with acn=newAcn  }
 
     let rec CloneTreeMulti ast (state:State) = 
         let RecursionFinished (s:State) =

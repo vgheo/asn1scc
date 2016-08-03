@@ -61,6 +61,7 @@ let CloneTypeAssigment (old:TypeAssignment) (m:Asn1Module) cons state =
         c_name = old.c_name
         ada_name = old.ada_name
         Comments = old.Comments
+        baseType = old.baseType
     },s
 
 let CloneValueAssignment (old:ValueAssignment)  (m:Asn1Module) cons state=

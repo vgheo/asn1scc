@@ -59,6 +59,7 @@ and TypeAssignment = {
     c_name:string
     ada_name:string
     Type:Asn1Type
+    baseType : (StringLoc*StringLoc) option // The type that this TypeAssignments extends
     Comments: string array
 }
 
