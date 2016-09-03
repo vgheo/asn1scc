@@ -65,7 +65,7 @@ type CheckContext =
     | CheckSize          
     | CheckCharacter    
 
-
+(*
 let foldAstRoot 
     roorFunc                    
     fileFunc        
@@ -410,6 +410,347 @@ let foldAstRoot
                 let! nc2 = loopConstraint s t checContent c2
                 return root2ConstraintFunc s t actType nc1 nc2
             }
+
+        | SizeContraint(sc)         -> loopConstraint s t CheckSize sc
+
+        | AlphabetContraint c       -> loopConstraint s t CheckCharacter c
+
+        | WithComponentConstraint _          -> raise(BugErrorException "This constraint should have been removed")
+        | WithComponentsConstraint _         -> raise(BugErrorException "This constraint should have been removed")
+                
+
+    loopAstRoot r id 
+
+
+    *)
+
+let foldAstRoot2 
+    rootFunc                    
+    fileFunc        
+    modFunc 
+    tasFunc 
+    vasFunc 
+    refTypeFunc 
+    baseTypeFunc 
+    enmItemFunc 
+    seqOfTypeFunc 
+    seqTypeFunc 
+    chTypeFunc 
+    sequenceChildFunc 
+    choiceChildFunc 
+    refValueFunc  
+    enumValueFunc 
+    intValFunc 
+    realValFunc 
+    ia5StringValFunc 
+    numStringValFunc 
+    boolValFunc 
+    octetStringValueFunc 
+    bitStringValueFunc 
+    nullValueFunc 
+    seqOfValueFunc 
+    seqValueFunc 
+    chValueFunc
+    singleValueContraintFunc 
+    rangeContraintFunc 
+    greaterThanContraintFunc
+    lessThanContraintFunc
+    alwaysTtrueContraintFunc
+    typeInclConstraintFunc
+    unionConstraintFunc
+    intersectionConstraintFunc
+    notConstraintFunc
+    exceptConstraintFunc
+    rootConstraintFunc
+    root2ConstraintFunc
+    (r:AstRoot) =
+
+    let rec loopAstRoot (r:AstRoot) =
+        let files = r.Files |> List.map  (loopFile r)
+        rootFunc r files
+    and loopFile (r:AstRoot) (f:Asn1File) =
+        let modules = f.Modules |> List.map  (loopModule r f)
+        fileFunc r f modules
+    and loopModule (r:AstRoot) (f:Asn1File) (m:Asn1Module) =
+        let tases = m.TypeAssignments |> List.map  (loopTypeAssignment r f m)
+        let vases = m.ValueAssignments |> List.map  (loopValueAssignments r f m)
+        modFunc r f m tases vases
+    and loopTypeAssignment (r:AstRoot) (f:Asn1File) (m:Asn1Module) (tas:TypeAssignment) =
+        let s = {Scope.r = r; f = f; m=m; a= TAS tas; parents=[]}
+        let asn1Type = loopType s tas.Type
+        tasFunc r f m tas asn1Type
+    and loopValueAssignments (r:AstRoot) (f:Asn1File) (m:Asn1Module) (vas:ValueAssignment) =
+        let s = {Scope.r = r; f = f; m=m; a= VAS vas; parents=[]}
+        let actType = GetActualType vas.Type  r
+        let asn1Type = loopType s vas.Type
+        let asn1Value = loopAsn1Value s actType vas.Value
+        vasFunc r f m vas asn1Type asn1Value
+    and loopType (s:Scope) (t:Asn1Type) =
+        match t.Kind with
+        | ReferenceType (mdName,tasName, argList) ->
+            let eqType = GetActualType t r 
+            let refCons = t.Constraints |> List.map  (loopConstraint s eqType CheckContent)
+            let newActType = loopType s eqType 
+            refTypeFunc s mdName.Value tasName.Value newActType refCons
+        | Integer 
+        | Real    
+        | IA5String 
+        | NumericString 
+        | OctetString 
+        | NullType 
+        | BitString 
+        | Boolean           ->
+            let newCons = t.Constraints |> List.map  (loopConstraint s t CheckContent)
+            baseTypeFunc s t newCons            
+        | Enumerated (enmItems) ->  
+            let newCons = t.Constraints |> List.map  (loopConstraint s t CheckContent)
+            let newEnmItems = enmItems |> List.map (loopNamedItem s)
+            enmItemFunc s t newEnmItems newCons            
+        | SequenceOf (innerType)  ->
+            let newCons = t.Constraints |> List.map  (loopConstraint s t CheckContent)
+            let childScope = {s with parents = s.parents@[None, t]}
+            let newInnerType = loopType childScope  innerType
+            seqOfTypeFunc s t  newInnerType newCons
+        | Sequence (children)     ->
+            let newCons = t.Constraints |> List.map  (loopConstraint s t CheckContent)
+            let newChildren = 
+                children |> List.map  (fun chInfo -> 
+                    let childScope = {s with parents = s.parents@[(Some chInfo, t)]}
+                    loopSequenceChild childScope chInfo)
+            seqTypeFunc s t newChildren newCons
+        | Choice (children)       ->
+            let newCons = t.Constraints |> List.map  (loopConstraint s t CheckContent)
+            let newChildren = 
+                children |> List.map  (fun chInfo ->
+                    let childScope = {s with parents = s.parents@[(Some chInfo, t)]}
+                    loopChoiceChild childScope chInfo)
+            chTypeFunc s t newChildren newCons
+
+   
+    and loopNamedItem (s:Scope) (ni:NamedItem) =
+        
+            match ni._value with
+            | Some v    ->
+                let newValue = loopAsn1Value s enumIntegerType v
+                (ni.Name, ni.Comments, Some newValue)
+            | None      ->
+                (ni.Name, ni.Comments, None)
+        
+    and loopSequenceChild (s:Scope)  (chInfo:ChildInfo) =
+            let newType = loopType s  chInfo.Type
+            let newDefValue = 
+                    match chInfo.Optionality with
+                    | Some Asn1Optionality.AlwaysAbsent
+                    | Some Asn1Optionality.AlwaysPresent
+                    | Some Asn1Optionality.Optional          
+                    | None                                  -> 
+                        None
+                    | Some  (Asn1Optionality.Default   vl)  ->
+                        let eqType = GetActualType chInfo.Type r
+                        let newValue = loopAsn1Value s eqType vl
+                        Some newValue
+            sequenceChildFunc s chInfo newType newDefValue
+    and loopChoiceChild (s:Scope)  (chInfo:ChildInfo) =
+        
+            let newType = loopType s  chInfo.Type
+            choiceChildFunc s   chInfo newType
+        
+    and loopAsn1Value (s:Scope) (t:Asn1Type) (v:Asn1Value) =
+        match v.Kind, t.Kind with
+        | RefValue (md,vas), Enumerated (enmItems)   ->
+                match enmItems |> Seq.tryFind (fun x -> x.Name.Value = vas.Value) with
+                | Some enmItem    ->
+                    
+                        let actType = loopType s t
+                        let ni = loopNamedItem s enmItem
+                        enumValueFunc s t actType enmItem  ni          
+                    
+                | None          ->
+                    
+                        let actValue = GetActualValue md vas r
+                        let newActVal = loopAsn1Value s t actValue
+                        refValueFunc s t (md.Value, vas.Value) newActVal            
+                    
+        | RefValue (md,vas), _   ->
+                
+                    let actValue = GetActualValue md vas r
+                    let newActVal = loopAsn1Value s t actValue
+                    refValueFunc s t (md.Value, vas.Value) newActVal            
+                
+        | IntegerValue bi, Integer          ->
+            
+                let actType = loopType s t
+                intValFunc s t actType bi.Value
+            
+        | IntegerValue bi, Real  _           ->
+            
+                let actType = loopType s t
+                let dc:double = (double)bi.Value
+                realValFunc s t actType dc
+            
+        | RealValue dc , Real   _                  -> 
+            
+                let actType = loopType s t
+                realValFunc s t actType dc.Value
+            
+        | StringValue str, IA5String _   -> 
+            
+                let actType = loopType s t
+                ia5StringValFunc s t actType str.Value
+            
+        | StringValue str , NumericString _   -> 
+            
+                let actType = loopType s t
+                numStringValFunc s t actType str.Value
+            
+        | BooleanValue b, Boolean _       ->
+            
+                let actType = loopType s t
+                boolValFunc s t actType b.Value
+            
+        | OctetStringValue b, OctetString _         ->
+            
+                let actType = loopType s t
+                octetStringValueFunc s t actType b
+            
+        | OctetStringValue b, BitString _        ->
+            
+                let actType = loopType s t
+                octetStringValueFunc s t actType b
+            
+        | BitStringValue b, BitString _           ->
+            
+                let actType = loopType s t
+                bitStringValueFunc s t actType b 
+            
+        | NullValue , NullType _   ->
+            
+                let actType = loopType s t
+                nullValueFunc s t actType             
+            
+        | SeqOfValue  vals, SequenceOf chType    ->
+            
+                let actType = loopType s t
+                let eqType = GetActualType chType r
+                let newVals = vals |> List.map  (loopAsn1Value s eqType)
+                seqOfValueFunc s t actType  newVals
+            
+        | SeqValue    namedValues, Sequence children ->
+            
+                let actType = loopType s t
+                let newValues =  namedValues |> List.map  (loopSeqValueChild s  children )
+                seqValueFunc s t actType newValues
+            
+        | ChValue (name,vl), Choice children         ->
+            match children |> Seq.tryFind(fun ch -> ch.Name.Value = name.Value) with
+            | Some chType   ->
+                
+                    let actType = loopType s t
+                    let eqType = GetActualType chType.Type r 
+                    let newValue = loopAsn1Value s eqType vl
+                    chValueFunc s t actType name newValue
+                
+            | None  -> 
+                error name.Location "Invalid alternative name '%s'" name.Value
+        | _         ->
+            error v.Location "Invalid combination ASN.1 type and ASN.1 value"
+
+
+    and loopSeqValueChild (s:Scope)  (children: list<ChildInfo>) (nm:StringLoc, chv:Asn1Value) = 
+        
+            let child = 
+                match children |> Seq.tryFind (fun ch -> ch.Name.Value = nm.Value) with
+                | Some ch -> ch
+                | None    -> error nm.Location "Invalid child name '%s'" nm.Value
+
+            let eqType = GetActualType child.Type r
+            let newValue = loopAsn1Value s eqType chv
+            ((nm,loc),newValue)
+        
+
+    and loopConstraint (s:Scope) (t:Asn1Type) (checContent:CheckContext) (c:Asn1Constraint) =
+        let vtype =
+            match checContent with
+            | CheckSize         -> sizeIntegerType
+            | CheckCharacter    -> stringType
+            | CheckContent      -> t                 
+
+        match c with
+        | SingleValueContraint v        ->
+            
+                let actType = loopType s t
+                let newValue = loopAsn1Value s vtype v
+                singleValueContraintFunc s t checContent actType newValue
+            
+        | RangeContraint(v1,v2,b1,b2)   -> 
+            
+                let actType = loopType s t
+                let newValue1 = loopAsn1Value s vtype v1
+                let newValue2 = loopAsn1Value s vtype v2
+                rangeContraintFunc s t checContent actType newValue1 newValue2 b1 b2
+            
+        | RangeContraint_val_MAX (v,b)  ->
+            
+                let actType = loopType s t
+                let newValue = loopAsn1Value s vtype v
+                greaterThanContraintFunc s t checContent actType newValue  b
+            
+        | RangeContraint_MIN_val (v,b)  ->
+            
+                let actType = loopType s t
+                let newValue = loopAsn1Value s vtype v
+                lessThanContraintFunc s t checContent actType newValue  b
+            
+        | RangeContraint_MIN_MAX             -> 
+            
+                let actType = loopType s t
+                alwaysTtrueContraintFunc s t checContent actType 
+            
+        | TypeInclusionConstraint (md,tas)  ->
+            
+                let actType = loopType s t
+                typeInclConstraintFunc s t actType (md,tas)
+            
+        | UnionConstraint (c1,c2,v)      ->
+            
+                let actType = loopType s t
+                let nc1 = loopConstraint s t checContent c1
+                let nc2 = loopConstraint s t checContent c2
+                unionConstraintFunc s t actType nc1 nc2
+            
+        | IntersectionConstraint(c1,c2)         ->
+            
+                let actType = loopType s t
+                let nc1 = loopConstraint s t checContent c1
+                let nc2 = loopConstraint s t checContent c2
+                intersectionConstraintFunc s t actType nc1 nc2
+            
+        | AllExceptConstraint c ->
+            
+                let actType = loopType s t
+                let nc = loopConstraint s t checContent c
+                notConstraintFunc s t actType nc
+            
+        | ExceptConstraint (c1,c2)  ->
+            
+                let actType = loopType s t
+                let nc1 = loopConstraint s t checContent c1
+                let nc2 = loopConstraint s t checContent c2
+                exceptConstraintFunc s t actType nc1 nc2
+            
+        | RootConstraint c  ->
+            
+                let actType = loopType s t
+                let nc = loopConstraint s t checContent c
+                rootConstraintFunc s t actType nc 
+            
+        | RootConstraint2 (c1,c2)  ->
+            
+                let actType = loopType s t
+                let nc1 = loopConstraint s t checContent c1
+                let nc2 = loopConstraint s t checContent c2
+                root2ConstraintFunc s t actType nc1 nc2
+            
 
         | SizeContraint(sc)         -> loopConstraint s t CheckSize sc
 
