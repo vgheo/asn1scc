@@ -60,9 +60,9 @@ flag BitStream_DecodeNonNegativeInteger(BitStream* pBitStrm, asn1SccUint* v, int
 flag BitStream_ReadPartialByte(BitStream* pBitStrm, byte *v, byte nbits);
 void BitStream_AppendPartialByte(BitStream* pBitStrm, byte v, byte nbits, flag negate);
 
-/* XXX - feature real */
+#ifdef ASN1SCC_REAL
 void BitStream_EncodeReal(BitStream* pBitStrm, double v);
 flag BitStream_DecodeReal(BitStream* pBitStrm, double* v);
-
+#endif
 
 #endif /* BITSTREAM_H_ */

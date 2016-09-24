@@ -2,14 +2,16 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
-#include <float.h>
 #include <ctype.h>
 #include <stdlib.h>
 
+#ifdef ASN1SCC_REAL
+#include <float.h>
+#endif
 
-#include "ber.h"
-#include "util.h"
-#include "BitStream.h"
+#include "asn1scc/ber.h"
+#include "asn1scc/util.h"
+#include "asn1scc/BitStream.h"
 
 
 
@@ -290,6 +292,8 @@ flag BerDecodeBoolean(ByteStream* pByteStrm, BerTag tag, flag *value, int *pErrC
     return TRUE;
 }
 
+#ifdef ASN1SCC_REAL
+
 flag BerEncodeReal(ByteStream* pByteStrm, BerTag tag, double value, int *pErrCode) {
     byte buf[100];
     BitStream tmp;
@@ -345,6 +349,8 @@ flag BerDecodeReal(ByteStream* pByteStrm, BerTag tag, double *value, int *pErrCo
     return TRUE;
          
 }
+#endif
+
 
 flag BerEncodeIA5String(ByteStream* pByteStrm, BerTag tag, const char* value, int length, int *pErrCode) {
     int i;

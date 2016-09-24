@@ -3,7 +3,9 @@
  *
  */
 
-#include "BitStream.h"
+#include "asn1scc/BitStream.h"
+#include "asn1scc/util.h"
+#include "asn1scc/real.h"
 
 #ifndef INFINITY
   #ifdef __GNUC__

@@ -29,8 +29,10 @@ flag BerDecodeInteger(ByteStream* pByteStrm, BerTag tag, asn1SccSint *value, int
 flag BerEncodeBoolean(ByteStream* pByteStrm, BerTag tag, flag value, int *pErrCode);
 flag BerDecodeBoolean(ByteStream* pByteStrm, BerTag tag, flag *value, int *pErrCode);
 
+#ifdef ASN1SCC_REAL
 flag BerEncodeReal(ByteStream* pByteStrm, BerTag tag, double value, int *pErrCode);
 flag BerDecodeReal(ByteStream* pByteStrm, BerTag tag, double *value, int *pErrCode);
+#endif
 
 flag BerEncodeIA5String(ByteStream* pByteStrm, BerTag tag, const char* value, int length, int *pErrCode);
 flag BerDecodeIA5String(ByteStream* pByteStrm, BerTag tag, char* value, int maxLength, int *pErrCode);

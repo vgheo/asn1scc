@@ -6,6 +6,9 @@
 #ifndef XER_H_
 #define XER_H_
 
+#include "asn1scc/core.h"
+#include "asn1scc/ByteStream.h"
+
 typedef struct {
 	int TokenID;
 	char Value[100];
@@ -29,7 +32,9 @@ flag Xer_EncodeComment(ByteStream* pByteStrm, const char* comment, int *pErrCode
 flag Xer_EncodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSint value, int *pErrCode, int level);
 flag Xer_EncodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag value, int *pErrCode, int level);
 flag Xer_EncodeEnumerated(ByteStream* pByteStrm, const char* elementTag, const char* value, int *pErrCode, int level);
+#ifdef ASN1SCC_REAL
 flag Xer_EncodeReal(ByteStream* pByteStrm, const char* elementTag, double value, int *pErrCode, int level);
+#endif
 flag Xer_EncodeString(ByteStream* pByteStrm, const char* elementTag, const char* value, int *pErrCode, int level);
 flag Xer_EncodeOctetString(ByteStream* pByteStrm, const char* elementTag, const byte value[], int nCount, int *pErrCode, int level);
 flag Xer_EncodeBitString(ByteStream* pByteStrm, const char* elementTag, const byte value[], int nCount, int *pErrCode, int level);
@@ -39,7 +44,9 @@ flag Xer_EncodeBitString(ByteStream* pByteStrm, const char* elementTag, const by
 flag Xer_DecodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSint* value, int *pErrCode);
 flag Xer_DecodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag* value, int *pErrCode);
 flag Xer_DecodeEnumerated(ByteStream* pByteStrm, const char* elementTag, char* value, int *pErrCode);
+#ifdef ASN1SCC_REAL
 flag Xer_DecodeReal(ByteStream* pByteStrm, const char* elementTag, double* value, int *pErrCode);
+#endif
 flag Xer_DecodeString(ByteStream* pByteStrm, const char* elementTag, char* value, int *pErrCode);
 flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte value[], long* nCount, int *pErrCode);
 flag Xer_DecodeBitString(ByteStream* pByteStrm, const char* elementTag, byte value[], long* nCount, int *pErrCode);

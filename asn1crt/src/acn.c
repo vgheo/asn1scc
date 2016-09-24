@@ -1,10 +1,13 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
-#include <float.h>
 
-#include "acn.h"
-#include "util.h"
+#ifdef ASN1SCC_REAL
+#include <float.h>
+#endif
+
+#include "asn1scc/acn.h"
+#include "asn1scc/util.h"
 
 static byte masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
@@ -14,7 +17,6 @@ static flag RequiresReverse()
     char *b = (char *) &word; 
     return b[0] == 1;
 }
-
 
 
 void Acn_AlignToNextByte(BitStream* pBitStrm) 
@@ -839,6 +841,7 @@ flag BitStream_ReadBitPattern(BitStream* pBitStrm, const byte* patternToRead, in
     return TRUE;
 }
 
+#ifdef ASN1SCC_REAL
 /*Real encoding functions*/
 typedef union _float_tag
 {
@@ -959,8 +962,7 @@ flag Acn_Dec_Real_IEEE754_64_little_endian(BitStream* pBitStrm, double* pRealVal
 {
     Acn_dec_real_little_endian(double)
 }
-
-
+#endif
 
 
 /* String functions*/

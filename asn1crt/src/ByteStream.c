@@ -3,7 +3,7 @@
  *
  */
 
-#include "ByteStream.h"
+#include "asn1scc/ByteStream.h"
 
 #include <string.h>
 

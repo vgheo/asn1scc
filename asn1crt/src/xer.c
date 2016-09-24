@@ -1,14 +1,18 @@
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <math.h>
-#include <float.h>
 #include <ctype.h>
 #include <stdlib.h>
 
+#ifdef ASN1SCC_REAL
+#include <float.h>
+#include "asn1scc/real.h"
+#endif
 
-#include "asn1crt.h"
 
+
+#include "asn1scc/xer.h"
+#include "asn1scc/util.h"
 
 
 char* Int2String(asn1SccSint v) {
@@ -22,6 +26,7 @@ char* Int2String(asn1SccSint v) {
     return tmp;
 }
 
+#ifdef ASN1SCC_REAL
 char* Double2String(double v) {
     static char tmp[256];
     char* pos1 = NULL;
@@ -36,6 +41,8 @@ char* Double2String(double v) {
 
     return tmp;
 }
+#endif
+
 
 flag GetNextChar(ByteStream* pStrm, char* c) {
     if (pStrm->currentByte+1>pStrm->count+1)
@@ -542,10 +549,12 @@ flag Xer_EncodeEnumerated(ByteStream* pByteStrm, const char* elementTag, const c
     return TRUE;
 }
 
+#ifdef ASN1SCC_REAL
 flag Xer_EncodeReal(ByteStream* pByteStrm, const char* elementTag, double value, int *pErrCode, int level)
 {
     return Xer_EncodePrimitiveElement(pByteStrm, elementTag, Double2String(value), pErrCode, level); 
 }
+#endif
 
 flag Xer_EncodeString(ByteStream* pByteStrm, const char* elementTag, const char* value, int *pErrCode, int level)
 {
@@ -680,6 +689,7 @@ flag Xer_DecodeEnumerated(ByteStream* pByteStrm, const char* elementTag, char* v
     return TRUE;
 }
 
+#ifdef ASN1SCC_REAL
 flag Xer_DecodeReal(ByteStream* pByteStrm, const char* elementTag, double* value, int *pErrCode)
 {
     char tmp[256];
@@ -689,6 +699,7 @@ flag Xer_DecodeReal(ByteStream* pByteStrm, const char* elementTag, double* value
     *value = atof(tmp);
     return TRUE;
 }
+#endif
 
 
 flag Xer_DecodeString(ByteStream* pByteStrm, const char* elementTag, char* value, int *pErrCode)

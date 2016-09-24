@@ -4,7 +4,7 @@
  */
 
 
-#include "util.h"
+#include "asn1scc/util.h"
 
 
 #if WORD_SIZE==8

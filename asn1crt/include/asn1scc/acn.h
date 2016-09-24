@@ -90,7 +90,7 @@ flag Acn_Dec_Int_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint* 
 
 
 
-
+#ifdef ASN1SCC_REAL
 /*Real encoding functions*/
 void Acn_Enc_Real_IEEE754_32_big_endian(BitStream* pBitStrm, double realValue);
 void Acn_Enc_Real_IEEE754_64_big_endian(BitStream* pBitStrm, double realValue);
@@ -101,6 +101,7 @@ flag Acn_Dec_Real_IEEE754_32_big_endian(BitStream* pBitStrm, double* pRealValue)
 flag Acn_Dec_Real_IEEE754_64_big_endian(BitStream* pBitStrm, double* pRealValue);
 flag Acn_Dec_Real_IEEE754_32_little_endian(BitStream* pBitStrm, double* pRealValue);
 flag Acn_Dec_Real_IEEE754_64_little_endian(BitStream* pBitStrm, double* pRealValue);
+#endif
 
 /*String functions*/
 void Acn_Enc_String_Ascii_FixSize                       (BitStream* pBitStrm, asn1SccSint max, const char* strVal);
