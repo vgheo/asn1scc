@@ -804,37 +804,6 @@ flag Acn_Dec_Int_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint* 
 
 
 
-
-
-
-
-/* Boolean Decode */
-
-flag BitStream_ReadBitPattern(BitStream* pBitStrm, const byte* patternToRead, int nBitsToRead, flag* pBoolValue)
-{
-    int nBytesToRead = nBitsToRead/8;
-    int nRemainingBitsToRead = nBitsToRead%8;
-    byte curByte;
-    int i=0;
-
-    *pBoolValue = TRUE;
-    for(i=0;i<nBytesToRead;i++) {
-        if (!BitStream_ReadByte(pBitStrm, &curByte))
-            return FALSE;
-        if (curByte!= patternToRead[i])
-            *pBoolValue = FALSE;
-    }
-    
-    if (nRemainingBitsToRead > 0) {
-        if (!BitStream_ReadPartialByte(pBitStrm, &curByte,  (byte)nRemainingBitsToRead))
-            return FALSE;
-        if (curByte != patternToRead[nBytesToRead]>>(8-nRemainingBitsToRead))
-            *pBoolValue = FALSE;
-    }
-
-    return TRUE;
-}
-
 #ifdef ASN1SCC_REAL
 /*Real encoding functions*/
 typedef union _float_tag

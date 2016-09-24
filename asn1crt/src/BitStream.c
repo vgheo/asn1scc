@@ -136,6 +136,33 @@ flag BitStream_ReadBit(BitStream* pBitStrm, flag* v)
     return pBitStrm->currentByte*8+pBitStrm->currentBit<=pBitStrm->count*8;
 }
 
+/* Boolean Decode */
+
+flag BitStream_ReadBitPattern(BitStream* pBitStrm, const byte* patternToRead, int nBitsToRead, flag* pBoolValue)
+{
+    int nBytesToRead = nBitsToRead/8;
+    int nRemainingBitsToRead = nBitsToRead%8;
+    byte curByte;
+    int i=0;
+
+    *pBoolValue = TRUE;
+    for(i=0;i<nBytesToRead;i++) {
+        if (!BitStream_ReadByte(pBitStrm, &curByte))
+            return FALSE;
+        if (curByte!= patternToRead[i])
+            *pBoolValue = FALSE;
+    }
+
+    if (nRemainingBitsToRead > 0) {
+        if (!BitStream_ReadPartialByte(pBitStrm, &curByte,  (byte)nRemainingBitsToRead))
+            return FALSE;
+        if (curByte != patternToRead[nBytesToRead]>>(8-nRemainingBitsToRead))
+            *pBoolValue = FALSE;
+    }
+
+    return TRUE;
+}
+
 void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate)
 {
     int cb = pBitStrm->currentBit;
@@ -530,6 +557,8 @@ flag BitStream_DecodeUnConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v
     }
     return TRUE;
 }
+
+
 
 
 
