@@ -35,7 +35,9 @@
 								<option id="gnu.c.compiler.so.debug.option.debugging.level.1532199743" name="Debug Level" superClass="gnu.c.compiler.so.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.dialect.std.610119821" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.misc.pic.335871253" name="Position Independent Code (-fPIC)" superClass="gnu.c.compiler.option.misc.pic" useByScannerDiscovery="false" value="true" valueType="boolean"/>
-								<option id="gnu.c.compiler.option.include.paths.1662204537" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath"/>
+								<option id="gnu.c.compiler.option.include.paths.1662204537" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/asn1crt/include}&quot;"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.385737181" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.so.debug.984420797" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.so.debug">
@@ -50,22 +52,6 @@
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.so.debug.724836841" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.so.debug">
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.305061877" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
-							</tool>
-						</toolChain>
-					</folderInfo>
-					<folderInfo id="cdt.managedbuild.config.gnu.so.debug.190037649.900850335" name="/" resourcePath="include">
-						<toolChain id="cdt.managedbuild.toolchain.gnu.so.debug.410071808" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.so.debug" unusedChildren="">
-							<targetPlatform id="cdt.managedbuild.target.gnu.platform.so.debug" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.so.debug"/>
-							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1037661602" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base.289194656"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.so.debug.2023759168" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.so.debug.2061086739"/>
-							<tool id="cdt.managedbuild.tool.gnu.c.compiler.so.debug.1226731989" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.so.debug.721192846">
-								<option id="gnu.c.compiler.option.include.paths.351088488" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath"/>
-								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.911290118" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.linker.so.debug.1094354543" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.so.debug.984420797"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.so.debug.1777798285" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.so.debug.170268525"/>
-							<tool id="cdt.managedbuild.tool.gnu.assembler.so.debug.1567900104" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.so.debug.724836841">
-								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1737622870" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
