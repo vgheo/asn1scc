@@ -11,12 +11,6 @@
 
 static byte masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
-static flag RequiresReverse() 
-{
-    short int word = 0x0001; 
-    char *b = (char *) &word; 
-    return b[0] == 1;
-}
 
 
 void Acn_AlignToNextByte(BitStream* pBitStrm) 
@@ -855,6 +849,12 @@ typedef union _double_tag
     byte b[sizeof(double)];
 } _double;
 
+static flag RequiresReverse()
+{
+    short int word = 0x0001;
+    char *b = (char *) &word;
+    return b[0] == 1;
+}
 
 #define Acn_enc_real_big_endian(type)       \
     int i;                      \
